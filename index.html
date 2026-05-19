@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,27 +9,35 @@
 <body class="bg-slate-900 text-white min-h-screen">
     <nav class="p-6 flex justify-between items-center max-w-4xl mx-auto">
         <h1 class="text-2xl font-bold text-green-400">GG.bond-Music</h1>
-        <button onclick="toggleLang()" class="bg-slate-700 px-4 py-2 rounded-lg hover:bg-slate-600" id="langBtn">中/EN</button>
+        <button onclick="toggleLang()" class="bg-slate-700 px-4 py-2 rounded-lg hover:bg-slate-600" id="langBtn">EN/中文</button>
     </nav>
 
     <div class="max-w-4xl mx-auto p-6" id="app">
         <div class="flex gap-2 mb-8">
-            <input id="query" class="flex-1 p-3 rounded-lg text-black outline-none" placeholder="搜索歌曲、歌手...">
-            <button onclick="search()" class="bg-green-600 px-6 py-3 rounded-lg hover:bg-green-500">搜索</button>
+            <input id="query" class="flex-1 p-3 rounded-lg text-black outline-none" placeholder="Search songs, artists...">
+            <button id="searchBtn" onclick="search()" class="bg-green-600 px-6 py-3 rounded-lg hover:bg-green-500">Search</button>
         </div>
         <div id="results" class="grid gap-4"></div>
     </div>
 
     <script>
-        let isChinese = true;
+        // 默认设置为英文
+        let isChinese = false; 
         
         function toggleLang() {
             isChinese = !isChinese;
-            document.getElementById('langBtn').innerText = isChinese ? "中/EN" : "EN/中";
-            alert(isChinese ? "已切换至中文" : "Switched to English");
+            document.getElementById('langBtn').innerText = isChinese ? "中文/EN" : "EN/中文";
+            
+            // 动态更新静态文本
+            if (document.getElementById('query')) {
+                document.getElementById('query').placeholder = isChinese ? "搜索歌曲、歌手..." : "Search songs, artists...";
+                document.getElementById('searchBtn').innerText = isChinese ? "搜索" : "Search";
+            }
+            
+            alert(isChinese ? "Switched to Chinese" : "Switched to English");
         }
 
-        // 搜索歌曲
+        // Search songs
         async function search() {
             const query = document.getElementById('query').value;
             const resDiv = document.getElementById('results');
@@ -51,7 +59,7 @@
             `).join('');
         }
 
-        // 显示详情及调用 DeepSeek
+        // Show details and call DeepSeek
         function showDetail(trackData) {
             const t = JSON.parse(decodeURIComponent(trackData));
             document.getElementById('app').innerHTML = `
@@ -70,16 +78,21 @@
             `;
         }
 
-        // 调用后端 API 获取 AI 简介
+        // Call backend API to get AI bio
         async function getArtistBio(artistName) {
             const bioDiv = document.getElementById('bio-content');
             bioDiv.innerText = isChinese ? "AI 正在加载背景..." : "AI is loading bio...";
             
+            // 根据当前语言向 AI 发送不同语言的 prompt
+            const aiPrompt = isChinese 
+                ? `请简要介绍歌手：${artistName}` 
+                : `Please briefly introduce the artist: ${artistName}`;
+
             try {
                 const response = await fetch('/api/chat', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: `请简要介绍歌手：${artistName}` })
+                    body: JSON.stringify({ prompt: aiPrompt })
                 });
                 const data = await response.json();
                 bioDiv.innerText = data.choices[0].message.content;
